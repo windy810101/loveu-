@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0d0107; display: flex; justify-content: center; align-items: center; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #music-btn {
+            position: absolute; top: 20px; right: 20px; background: rgba(255, 42, 109, 0.2);
+            border: 2px solid #ff2a6d; color: #ff7597; padding: 10px 18px; border-radius: 30px;
+            font-size: 14px; font-weight: bold; cursor: pointer; backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(255, 42, 109, 0.4); z-index: 10;
+        }
+    </style>
+</head>
+<body>
+<button id="music-btn">🎵 Нажми на меня</button>
+<audio id="bg-music" loop><source src="music.mp3" type="audio/mp3"></audio>
+<canvas id="canvas"></canvas>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let dpr = window.devicePixelRatio || 2;
+    let width, height;
+    function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width * dpr; canvas.height = height * dpr; ctx.scale(dpr, dpr); }
+    window.addEventListener('resize', resize); resize();
+
+    const musicBtn = document.getElementById('music-btn');
+    const audio = document.getElementById('bg-music');
+    let isPlaying = false;
+    musicBtn.addEventListener('click', () => {
+        if (!isPlaying) { audio.play(); isPlaying = true; musicBtn.innerText = "💖 Музыка играет"; }
+        else { audio.pause(); isPlaying = false; musicBtn.innerText = "🎵 Нажми на меня"; }
+    });
+
+    function customHeartPath(ctx, x, y, size) {
+        ctx.beginPath(); ctx.moveTo(x, y + size * 0.3);
+        ctx.bezierCurveTo(x, y - size * 0.2, x - size * 0.7, y - size * 0.2, x - size * 0.7, y + size * 0.2);
+        ctx.bezierCurveTo(x - size * 0.7, y + size * 0.6, x, y + size * 0.9, x, y + size * 1.1);
+        ctx.bezierCurveTo(x, y + size * 0.9, x + size * 0.7, y + size * 0.6, x + size * 0.7, y + size * 0.2);
+        ctx.bezierCurveTo(x + size * 0.7, y - size * 0.2, x, y - size * 0.2, x, y + size * 0.3); ctx.closePath();
+    }
+    function drawCustomHeart(x, y, size, rotation, fill, alpha = 1, glow = null) {
+        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(rotation);
+        if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = size * 1.6; }
+        ctx.fillStyle = fill; customHeartPath(ctx, 0, -size * 0.5, size * 0.82); ctx.fill(); ctx.restore();
+    }
+    function heartPath(ctx, x, y, size) {
+        ctx.beginPath(); const t = size * 0.3; ctx.moveTo(x, y + t);
+        ctx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + t);
+        ctx.bezierCurveTo(x - size / 2, y + (size + t) / 2, x, y + size, x, y + size);
+        ctx.bezierCurveTo(x, y + size, x + size / 2, y + (size + t) / 2, x + size / 2, y + t);
+        ctx.bezierCurveTo(x + size / 2, y, x, y, x, y + t); ctx.closePath();
+    }
+    function drawHeart(x, y, size, rotation, fill, alpha = 1, glow = null) {
+        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(rotation);
+        if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = size * 1.8; }
+        ctx.fillStyle = fill; heartPath(ctx, 0, -size * 0.7, size * 0.9); ctx.fill(); ctx.restore();
+    }
+
+    function getBigHeartPoints(cx, cy, scale) {
+        const pts = [];
+        for (let i = 0; i < 150; i++) {
+            const t = (i / 150) * Math.PI * 2;
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+            pts.push({ x: cx + x * scale, y: cy + y * scale });
+        }
+        return pts;
+    }
+    function getLetterAPoints(cx, cy, scale) {
+        const pts = []; const s = scale * 0.42; const oy = cy + scale * 2.2;
+        for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push({ x: cx + (-6 * t) * s, y: oy + (-10 * (1-t) + 10 * t) * s }); }
+        for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push({ x: cx + (6 * t) * s, y: oy + (-10 * (1-t) + 10 * t) * s }); }
+        for (let i = 0; i <= 6; i++) { const t = i / 6; pts.push({ x: cx + (-3.2 * (1-t) + 3.2 * t) * s, y: oy + 0.8 * s }); }
+        return pts;
+    }
+    function drawCuteBear(x, y, isR = false) {
+        ctx.save(); ctx.translate(x, y); if (isR) ctx.scale(-1, 1);
+        ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(255,105,180,0.5)'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.ellipse(0, 18, 30, 25, 0, 0, 6.28); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -16, 28, 0, 6.28); ctx.fill();
+        ctx.beginPath(); ctx.arc(-20, -38, 10, 0, 6.28); ctx.arc(20, -38, 10, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#ffb6c1'; ctx.beginPath(); ctx.arc(-20, -38, 5.5, 0, 6.28); ctx.arc(20, -38, 5.5, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(-9, -16, 3.5, 0, 6.28); ctx.arc(9, -16, 3.5, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#ff6b8b'; ctx.beginPath(); ctx.arc(-16, -9, 4.5, 0, 6.28); ctx.arc(16, -9, 4.5, 0, 6.28); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.ellipse(0, -11, 2.8, 2, 0, 0, 6.28); ctx.fill();
+        drawHeart(25, 6, 16, 0.8, '#ff2d55', 1, '#ff3366'); ctx.restore();
+    }
+
+    let flying = [], placed = [], hProg = 0, aProg = 0, state = 'building', sTimer = 0;
+    function loop() {
+        ctx.fillStyle = '#0d0107'; ctx.fillRect(0, 0, width, height);
+        const sc = Math.min(width, height) / 38, cx = width / 2, cy = height / 2 + 35;
+        const hPts = getBigHeartPoints(cx, cy, sc), aPts = getLetterAPoints(cx, cy, sc);
+        const lS = { x: Math.max(80, width * 0.12), y: height - 80 }, rS = { x: Math.min(width - 80, width * 0.88), y: height - 80 };
+        drawCuteBear(lS.x, lS.y, false); drawCuteBear(rS.x, rS.y, true);
+        if (state === 'building') {
+            const hH = hPts.length / 2;
+            if (hProg < hH) {
+                const i = Math.floor(hProg), iL = (Math.floor(hPts.length * 0.25 - i) + hPts.length) % hPts.length, iR = Math.floor(hPts.length * 0.25 + i) % hPts.length;
+                flying.push({ sx: lS.x + 25, sy: lS.y, tx: hPts[iL].x, ty: hPts[iL].y, t: 0, speed: 0.014, curveH: -150, size: 9.8, isH: true });
+                flying.push({ sx: rS.x - 25, sy: rS.y, tx: hPts[iR].x, ty: hPts[iR].y, t: 0, speed: 0.014, curveH: -150, size: 9.8, isH: true });
+                hProg += 0.22;
+            }
+            if (hProg > hH * 0.35 && aProg < aPts.length) {
+                const ai = Math.floor(aProg), sh = ai % 2 === 0 ? lS : rS;
+                flying.push({ sx: sh.x + (ai%2===0?25:-25), sy: sh.y, tx: aPts[ai].x, ty: aPts[ai].y, t: 0, speed: 0.015, curveH: -180, size: 8, isH: false });
+                aProg += 0.16;
+            }
+            if (hProg >= hH && aProg >= aPts.length && flying.length === 0) { state = 'celebrating'; sTimer = 0; }
+        }
+        for (let i = flying.length - 1; i >= 0; i--) {
+            const p = flying[i]; p.t += p.speed;
+            const cX = (p.sx + p.tx) / 2, cY = Math.min(p.sy, p.ty) + p.curveH;
+            const x = (1-p.t)**2 * p.sx + 2*(1-p.t)*p.t * cX + p.t**2 * p.tx;
+            const y = (1-p.t)**2 * p.sy + 2*(1-p.t)*p.t * cY + p.t**2 * p.ty;
+            if (p.isH) drawCustomHeart(x, y, p.size, Math.sin(p.t*5)*0.25, '#ff2a6d', 0.95, '#ff0055');
+            else drawHeart(x, y, p.size, Math.sin(p.t*5)*0.25, '#ff7597', 0.95, '#ff99bb');
+            if (p.t >= 1) { placed.push({ x: p.tx, y: p.ty, size: p.isH ? 9.8 : 7.8, isH: p.isH }); flying.splice(i, 1); }
+        }
+        let pulse = 1; if (state === 'celebrating') { sTimer++; pulse = 1 + Math.sin(sTimer * 0.05) * 0.035; }
+        placed.forEach(h => {
+            const rx = cx + (h.x - cx) * pulse, ry = cy + (h.y - cy) * pulse;
+            if (h.isH) drawCustomHeart(rx, ry, h.size * pulse, 0, '#ff1a53', 0.98, '#ff0055');
+            else drawHeart(rx, ry, h.size * pulse, 0, '#ff7597', 0.98, '#ff99bb');
+        });
+        if (state === 'celebrating') {
+            ctx.save(); ctx.globalAlpha = Math.min(1, sTimer/35); ctx.font = '900 ' + Math.floor(sc * 2.2) + 'px "Courier New", monospace';
+            ctx.textAlign = 'center'; ctx.fillStyle = '#ff2a6d'; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 25;
+            ctx.fillText("i love you", cx, cy - sc * 14.5); ctx.restore();
+            if (sTimer > 280) state = 'fading';
+        }
+        if (state === 'fading') { sTimer++; ctx.fillStyle = 'rgba(13,1,7,0.06)'; ctx.fillRect(0,0,width,height); if (sTimer > 350) { placed = []; hProg = 0; aProg = 0; state = 'building'; sTimer = 0; } }
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
+</body>
+</html>
